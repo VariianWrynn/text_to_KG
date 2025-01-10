@@ -1,3 +1,4 @@
+import sys
 from ollama import Client
 
 # 定义 SYS_PROMPT 和 USER_PROMPT
@@ -58,8 +59,13 @@ SYS_PROMPT = (
 
 USER_PROMPT = "context: ```{input}``` \n\n output:"
 
-# 替换成你的上下文
-input_text = "Mary had a little lamb, You've heard this story before; But did you know she passed her plate, And ate a little more!"  # 示例上下文
+# 获取命令行参数作为输入文本
+if len(sys.argv) > 1:
+    input_text = sys.argv[1]
+else:
+    print("警告: 未提供输入参数，使用默认输入文本。")
+    input_text = "Mary had a little lamb, You've heard this story before; But did you know she passed her plate, And ate a little more!"  # 示例上下文
+
 formatted_user_prompt = USER_PROMPT.format(input=input_text)
 
 # 创建 Ollama 客户端
