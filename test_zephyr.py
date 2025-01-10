@@ -9,3 +9,5 @@ response = client.chat(model='zephyr', messages=[
         'content': 'Why is the sky blue?',
     },
 ])
+
+print(response)
