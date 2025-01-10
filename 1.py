@@ -28,7 +28,7 @@ SYS_PROMPT = (
 USER_PROMPT = "context: ```{input}``` \n\n output:"
 
 # 替换成你的上下文
-input_text = "Why is the sky blue?"  # 示例上下文
+input_text = "Mary had a little lamb, You've heard this story before; But did you know she passed her plate, And ate a little more!"  # 示例上下文
 formatted_user_prompt = USER_PROMPT.format(input=input_text)
 
 # 创建 Ollama 客户端
