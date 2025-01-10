@@ -50,4 +50,5 @@ response = client.chat(model='zephyr', messages=[
 ])
 
 # 打印响应
-print(response.content)
+print("#########################RESPONSE#########################")
+print(response.message['content'])
