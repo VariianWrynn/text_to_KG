@@ -1,5 +1,12 @@
 import sys
 from ollama import Client
+import json
+import pandas as pd
+
+client = Client(
+    host='http://192.168.11.69:11434',
+    headers={"Content-Type": "application/json"}
+)
 
 # 定义 SYS_PROMPT 和 USER_PROMPT
 SYS_PROMPT = (
@@ -59,33 +66,85 @@ SYS_PROMPT = (
 
 USER_PROMPT = "context: ```{input}``` \n\n output:"
 
-# 获取命令行参数作为输入文本
-if len(sys.argv) > 1:
-    input_text = sys.argv[1]
-else:
-    print("警告: 未提供输入参数，使用默认输入文本。")
-    input_text = "Mary had a little lamb, You've heard this story before; But did you know she passed her plate, And ate a little more!"  # 示例上下文
+def process_chunk(client, chunk):
+    """
+    对每个文本块调用模型，返回 JSON 格式的关系
+    """
+    formatted_user_prompt = USER_PROMPT.format(input=chunk)
+    response = client.chat(model='zephyr', messages=[
+        {
+            'role': 'system',
+            'content': SYS_PROMPT,
+        },
+        {
+            'role': 'user',
+            'content': formatted_user_prompt,
+        },
+    ])
+    try:
+        # 解析响应为 JSON 格式
+        return json.loads(response.message['content'])
+    except json.JSONDecodeError:
+        print("解析模型响应失败，跳过该块。")
+        return []
 
-formatted_user_prompt = USER_PROMPT.format(input=input_text)
+def read_chunks_from_file(file_path):
+    """
+    从文件读取文本块
+    """
+    with open(file_path, "r", encoding="utf-8") as f:
+        chunks = f.read().split("### Chunk")
+    return [chunk.strip() for chunk in chunks if chunk.strip()]
 
-# 创建 Ollama 客户端
-client = Client(
-    host='http://192.168.11.69:11434',
-    headers={"Content-Type": "application/json"}
-)
+def chunks_to_dataframe(chunks_results):
+    """
+    将所有块的结果合并为一个 Pandas DataFrame
+    """
+    all_relations = []
+    for chunk_result in chunks_results:
+        all_relations.extend(chunk_result)
+    df = pd.DataFrame(all_relations)
+    # 移除自环
+    df = df[df['node_1'] != df['node_2']]
+    return df
 
-# 使用指定的提示词进行聊天
-response = client.chat(model='zephyr', messages=[
-    {
-        'role': 'system',
-        'content': SYS_PROMPT,
-    },
-    {
-        'role': 'user',
-        'content': formatted_user_prompt,
-    },
-])
+def process_text(input_chunks_file):
+    # 从文件读取所有文本块
+    chunks = read_chunks_from_file(input_chunks_file)
+    print(f"读取到 {len(chunks)} 个文本块。")
 
-# 打印响应
-print("#########################RESPONSE#########################")
-print(response.message['content'])
+    # 逐块处理文本块并收集结果
+    chunks_results = []
+    for i, chunk in enumerate(chunks):
+        print(f"正在处理第 {i + 1}/{len(chunks)} 块...")
+        chunk_result = process_chunk(client, chunk)
+        chunks_results.append(chunk_result)
+
+    # 将结果合并为 Pandas DataFrame
+    final_df = chunks_to_dataframe(chunks_results)
+    return final_df
+
+def save_relations_to_csv(df, output_csv):
+    # 保存结果为 CSV 文件, 赋予覆盖写入权限
+    df.to_csv(output_csv, index=False, encoding="utf-8", mode='w')
+    print(f"处理完成，结果已保存到 {output_csv}")
+
+def main(input_chunks_file, output_csv):
+    # 调用处理函数
+    final_df = process_text(input_chunks_file)
+    save_relations_to_csv(final_df, output_csv)
+
+"""
+if __name__ == "__main__":
+    # 获取命令行参数作为输入文本
+    if len(sys.argv) > 2:
+        input_chunks_file = sys.argv[1]
+        output_csv = sys.argv[2]
+    else:
+        print("错误: 未提供输入参数。")
+        sys.exit(1)
+
+    # 调用处理函数
+    main(input_chunks_file, output_csv)
+
+"""
