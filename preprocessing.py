@@ -26,7 +26,7 @@ def read_pdf_file(file_path):
                 text += page.extract_text() + "\n"
     return text
 
-def split_text(text, chunk_size=1000, chunk_overlap=100):
+def split_text(text, chunk_size, chunk_overlap):
     """
     使用 LangChain 的 RecursiveCharacterTextSplitter 将文本切割成块
     """
@@ -51,7 +51,7 @@ def save_chunks_to_file(chunks, output_file):
             f.write(chunk.strip())  # 去掉多余的空格或换行
             f.write("\n\n")
 
-def preprocess_document(file_path, output_file, chunk_size=1000, chunk_overlap=100):
+def preprocess_document(file_path, output_file, chunk_size=300, chunk_overlap=30):
     # 判断文件类型
     if file_path.endswith(".docx"):
         text = read_word_file(file_path)

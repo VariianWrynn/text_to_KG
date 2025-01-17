@@ -4,6 +4,27 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from pylab import mpl
 
+def group_nodes_by_common_target(G, relationships):
+    node_groups = {}
+    for relationship in relationships:
+        source, target = relationship.split(" -> ")
+        source, target = source.strip(), target.strip()
+        if source > target:
+            source, target = target, source
+        if target not in node_groups:
+            node_groups[target] = []
+        if source not in node_groups[target]:
+            node_groups[target].append(source)
+    return node_groups
+
+def assign_colors_to_groups(node_groups):
+    group_colors = {}
+    for group, nodes in node_groups.items():
+        most_common_node = max(nodes, key=lambda node: nodes.count(node))
+        group_colors[group] = plt.cm.tab20(len(group_colors) % 20)
+        group_colors[most_common_node] = group_colors[group]
+    return group_colors
+
 def plot_graph(graph, labels=None, title=None):
     data = pd.read_csv("output_similarity_score.csv")
     
@@ -19,11 +40,14 @@ def plot_graph(graph, labels=None, title=None):
     filtered_relationships = relationships[scores > threshold]
     filtered_scores = scores[scores > threshold]
 
-    G = nx.DiGraph()
+    G = nx.Graph()
 
     for relationship, score in zip(filtered_relationships, filtered_scores):
         source, target = relationship.split(" -> ")
-        G.add_edge(source.strip(), target.strip(), weight=score)
+        source, target = source.strip(), target.strip()
+        if source > target:
+            source, target = target, source
+        G.add_edge(source, target, weight=score)
 
     edge_weights = [d['weight'] for _, _, d in G.edges(data=True)]
     max_weight = max(edge_weights)
@@ -36,9 +60,21 @@ def plot_graph(graph, labels=None, title=None):
     plt.figure(figsize=(20, 20))  # 增加图像大小
     pos = nx.spring_layout(G, seed = 42, k=0.3)  # 调整 k 值以增加节点间距
 
-    nx.draw_networkx_nodes(G, pos, node_size=1200, node_color="lightblue", alpha=0.9)
+    node_groups = group_nodes_by_common_target(G, filtered_relationships)
+    group_colors = assign_colors_to_groups(node_groups)
+
+    node_color_list = []
+    for node in G.nodes():
+        for target, sources in node_groups.items():
+            if node in sources or node == target:
+                node_color_list.append(group_colors[target])
+                break
+        else:
+            node_color_list.append("#A0CBE2")  # 默认颜色
+
+    nx.draw_networkx_nodes(G, pos, node_size=1200, node_color=node_color_list, alpha=0.9)
     edge_collection = nx.draw_networkx_edges(
-        G, pos, edge_color=normalized_colors, edge_cmap=custom_cmap, width=3
+        G, pos, edge_color=normalized_colors, edge_cmap=custom_cmap, width=2, arrowsize=25, arrowstyle='-|>', connectionstyle='arc3,rad=0', min_source_margin=15, min_target_margin=15
     )
     nx.draw_networkx_labels(G, pos, font_size=10, font_weight="bold")
 
