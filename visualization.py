@@ -6,23 +6,36 @@ from pylab import mpl
 
 def group_nodes_by_common_target(G, relationships):
     node_groups = {}
+
     for relationship in relationships:
+        # 拆分 source 和 target，并清理空格
         source, target = relationship.split(" -> ")
         source, target = source.strip(), target.strip()
+
+        # 确保 source 和 target 的顺序固定
         if source > target:
             source, target = target, source
+
+        # 将 source 和 target 加入分组
         if target not in node_groups:
             node_groups[target] = []
         if source not in node_groups[target]:
             node_groups[target].append(source)
+
+        # 双向相关性：也将 target 加入 source 的分组
+        if source not in node_groups:
+            node_groups[source] = []
+        if target not in node_groups[source]:
+            node_groups[source].append(target)
+
     return node_groups
 
 def assign_colors_to_groups(node_groups):
     group_colors = {}
-    for group, nodes in node_groups.items():
-        most_common_node = max(nodes, key=lambda node: nodes.count(node))
-        group_colors[group] = plt.cm.tab20(len(group_colors) % 20)
-        group_colors[most_common_node] = group_colors[group]
+    for i, (group, nodes) in enumerate(node_groups.items()):
+        group_colors[group] = plt.cm.tab20(i % 20)
+        for node in nodes:
+            group_colors[node] = group_colors[group]
     return group_colors
 
 def plot_graph(graph, labels=None, title=None):
@@ -63,18 +76,11 @@ def plot_graph(graph, labels=None, title=None):
     node_groups = group_nodes_by_common_target(G, filtered_relationships)
     group_colors = assign_colors_to_groups(node_groups)
 
-    node_color_list = []
-    for node in G.nodes():
-        for target, sources in node_groups.items():
-            if node in sources or node == target:
-                node_color_list.append(group_colors[target])
-                break
-        else:
-            node_color_list.append("#A0CBE2")  # 默认颜色
+    node_color_list = [group_colors[node] for node in G.nodes()]
 
     nx.draw_networkx_nodes(G, pos, node_size=1200, node_color=node_color_list, alpha=0.9)
     edge_collection = nx.draw_networkx_edges(
-        G, pos, edge_color=normalized_colors, edge_cmap=custom_cmap, width=2, arrowsize=25, arrowstyle='-|>', connectionstyle='arc3,rad=0', min_source_margin=15, min_target_margin=15
+        G, pos, edge_color=normalized_colors, edge_cmap=custom_cmap, width=2
     )
     nx.draw_networkx_labels(G, pos, font_size=10, font_weight="bold")
 
