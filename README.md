@@ -1,6 +1,3 @@
-以下是为 GitHub 仓库 [VariianWrynn/text_to_KG](https://github.com/VariianWrynn/text_to_KG) 编写的专业且美观的 `README.md` 文件：
-
-```markdown
 # 文本转知识图谱（text_to_KG）
 
 ## 概述
@@ -72,5 +69,3 @@
 
 *如有任何疑问或需要进一步的帮助，请在仓库中提交 issue。*
 ```
-
-请将上述内容复制并粘贴到您的 `README.md` 文件中，以提供项目的详细信息和使用指南。 
